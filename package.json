@@ -1,7 +1,11 @@
 {
   "name": "bundle-cxx.sh",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "A CLI tool to bundle / amagamate C/C++ files into a single file.",
+  "main": "index.js",
+  "bin": {
+    "bundle-cxx": "index.sh"
+  },
   "keywords": [
     "bundle",
     "amalgamate",
@@ -23,6 +27,11 @@
     "url": "https://github.com/nodef/bundle-cxx.sh/issues"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1"
+    "@types/node": "^24.10.1",
+    "@types/which": "^3.0.4"
+  },
+  "dependencies": {
+    "fast-csv": "^5.0.5",
+    "which": "^6.0.0"
   }
 }

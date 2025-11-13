@@ -1,5 +1,7 @@
 # Generated files
 *.exe
+*.csv
+index.js
 
 # Ignored Test files
 test.cxx

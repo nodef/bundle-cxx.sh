@@ -4,12 +4,12 @@
 
 
 // This will list all symbols in the given input C/C++ source file.
-int listSymbols(const char *inputFile) {
+int listSymbols(const char *inputFile, char *const *argv=nullptr, int argc=0) {
   // Create index, and parse the input file.
   CXIndex           index = clang_createIndex(0, 0);
   CXTranslationUnit unit  = clang_parseTranslationUnit(
     index, inputFile,
-    nullptr, 0, nullptr, 0,
+    argv, argc, nullptr, 0,
     CXTranslationUnit_None);
   if (unit == nullptr) {
     fprintf(stderr, "Unable to parse translation unit. Quitting.\n");
@@ -50,5 +50,5 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Usage: %s <input-file>\n", argv[0]);
     return 1;
   }
-  return listSymbols(inputFile);
+  return listSymbols(inputFile, argc>2? argv+2 : nullptr, argc>2? argc-2 : 0);
 }

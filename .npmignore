@@ -1,0 +1,6 @@
+.vscode/
+*.csv
+build.sh
+index.ts
+list-symbols.cxx
+test.c
