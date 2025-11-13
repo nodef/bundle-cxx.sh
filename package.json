@@ -1,0 +1,25 @@
+{
+  "name": "bundle-cxx.sh",
+  "version": "0.0.1",
+  "description": "A CLI tool to bundle / amagamate C/C++ files into a single file.",
+  "keywords": [
+    "bundle",
+    "amalgamate",
+    "c",
+    "c++",
+    "sources",
+    "single",
+    "file",
+    "stb"
+  ],
+  "license": "AGPL-3.0-or-later",
+  "author": "wolfram77@gmail.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nodef/bundle-cxx.sh.git"
+  },
+  "homepage": "https://github.com/nodef/bundle-cxx.sh#readme",
+  "bugs": {
+    "url": "https://github.com/nodef/bundle-cxx.sh/issues"
+  }
+}
