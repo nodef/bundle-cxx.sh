@@ -1,5 +1,9 @@
 # Generated files
+*.exe
 
+# Ignored Test files
+test.cxx
+test.c
 
 # VS Code
 .vscode/

@@ -21,5 +21,8 @@
   "homepage": "https://github.com/nodef/bundle-cxx.sh#readme",
   "bugs": {
     "url": "https://github.com/nodef/bundle-cxx.sh/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
   }
 }
