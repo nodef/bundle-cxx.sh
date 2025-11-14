@@ -14,6 +14,8 @@ type Options = {
   command: string;
   /** Arguments for the command. */
   args: string[];
+  /** Whether to reorder symbols (optional). */
+  reorder?: boolean;
   /** Symbols file path (optional). */
   symbolsPath?: string;
   /** Output file path (optional). */
@@ -65,6 +67,16 @@ async function readSymbolsCsv(pth: string) {
 }
 
 
+// Write the Symbols CSV file from symbol entries.
+function writeSymbolsCsv(pth: string, symbols: SymbolEntry[]) {
+  const stream = fs.createWriteStream(pth);
+  stream.write("filename_line,kind_display_name,new_display_name\n");
+  for (const symbol of symbols)
+    stream.write(`"${symbol.filename_line}","${symbol.kind_display_name}",\n`);
+  stream.end();
+}
+
+
 // Group symbols by their source file, so we can process each file once.
 function groupSymbolsByFile(symbols: SymbolEntry[]) {
   const map: Map<string, SymbolEntry[]> = new Map();
@@ -113,13 +125,23 @@ function renameSymbolsInFile(pth: string, symbols: SymbolEntry[]) {
 
 
 // Generate a Symbols CSV file from a source file using our libclang-based tool.
-function invokeListSymbols(sourcePath: string, csvPath: string, args: string[]=[]) {
+async function invokeListSymbols(sourcePath: string, csvPath: string, reorder: boolean, args: string[]=[]) {
   if (!csvPath) csvPath = path.basename(sourcePath, path.extname(sourcePath)) + "_symbols.csv";
   console.log(`Reading symbols from ${sourcePath} ...`);
   const argv    = [sourcePath, csvPath, ...args];
   const exePath = path.join(__dirname, "list-symbols.exe");
   const result  = cp.execFileSync(exePath, argv);
   writeTextFileSync(csvPath, result.toString());
+  if (reorder) {
+    console.log(`Reordering symbols in ${csvPath} ...`);
+    const symbols = await readSymbolsCsv(csvPath);
+    symbols.sort((a, b) => {
+      const [kindA, nameA] = a.kind_display_name.split(":");
+      const [kindB, nameB] = b.kind_display_name.split(":");
+      return kindA.localeCompare(kindB) || nameA.localeCompare(nameB);
+    });
+    writeSymbolsCsv(csvPath, symbols);
+  }
   console.log(`Symbols written to ${csvPath}`);
 }
 
@@ -161,8 +183,9 @@ async function bundleSourceFile(sourcePath: string, symbolsPath: string, outputP
 // Parse command-line options and populate the options object.
 function parseOptions(o: Options, k: string, a: string[], i: number) {
   if (k==="--help") o.help = true;
-  else if (k=="-c" || k=="--csv")    o.symbolsPath = a[++i];
-  else if (k=="-o" || k=="--output") o.outputPath  = a[++i];
+  else if (k=="-r" || k=="--reorder") o.reorder     = true;
+  else if (k=="-c" || k=="--csv")     o.symbolsPath = a[++i];
+  else if (k=="-o" || k=="--output")  o.outputPath  = a[++i];
   else if (!o.command) o.command = k;
   else o.args.push(a[i]);
   return i+1;
@@ -178,6 +201,7 @@ function showHelp(name: string) {
     `  bundle <source-file>               Bundle the source file by renaming symbols and amalgamating.\n\n` +
     `Options:\n` +
     `  --help                             Show this help information.\n` +
+    `  -r, --reorder                      Reorder symbols by kind and name.\n` +
     `  -c, --csv <symbols-file>           Specify the Symbols CSV file path.\n` +
     `  -o, --output <output-file>         Specify the output file path.\n` +
     `  <args>                             Additional arguments for libclang or amalgamate.\n` +
@@ -201,7 +225,7 @@ function showHelp(name: string) {
 // Here we provide two commands:
 // - list-symbols: Generates a Symbols CSV file from a source file.
 // - bundle: Bundles a source file by renaming symbols and amalgamating.
-function main() {
+async function main() {
   const o: Options = {help: false, command: "", args: []};
   const args = process.argv.slice(2);
   for (let i=0; i < args.length;)
@@ -214,6 +238,7 @@ function main() {
   { console.error(`Required tool, "list-symbols.exe", is not present.`); return; }
   try { which.sync("amalgamate"); }
   catch { console.error(`Required tool, "amalgamate.exe", is not present.`); return; }
+  const reorder     = o.reorder     || false;
   const symbolsPath = o.symbolsPath || "";
   const outputPath  = o.outputPath  || "";
   switch (o.command) {
@@ -221,7 +246,7 @@ function main() {
       console.error(`Unknown command: ${o.command}`);
       return;
     case "list-symbols":
-      invokeListSymbols(sourcePath, symbolsPath, o.args.slice(1));
+      await invokeListSymbols(sourcePath, symbolsPath, reorder, o.args.slice(1));
       break;
     case "bundle":
       bundleSourceFile(sourcePath, symbolsPath, outputPath, o.args.slice(1));
