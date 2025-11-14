@@ -25,8 +25,8 @@ type Options = {
 type SymbolEntry = {
   /** The filename and line number of the symbol definition. */
   filename_line: string;
-  /** The original symbol name, including function signature. */
-  display_name: string;
+  /** The original symbol kind and name, including function signature. */
+  kind_display_name: string;
   /** The new symbol name after renaming (optional). */
   new_display_name: string;
 };
@@ -103,7 +103,8 @@ function renameSymbolsInFile(pth: string, symbols: SymbolEntry[]) {
   for (const symbol of symbols) {
     const new_display_name = (symbol.new_display_name || "").trim();
     if  (!new_display_name) continue;
-    const display_name = symbol.display_name.replace(/\W.*/, "");
+    const kind_display_name = symbol.kind_display_name.replace(/\W.*/, "");
+    const display_name = kind_display_name.replace(/^.*:/, "");
     const regex = new RegExp(`\\b${escapeRegExp(display_name)}\\b`, "g");
     content = content.replace(regex, new_display_name);
   }
@@ -186,7 +187,7 @@ function showHelp(name: string) {
     `  $ ${name} list-symbols mysource.cxx --csv mysource_symbols.csv -DMYSOURCE_IMPLEMENTATION\n\n` +
     `  # Now edit \`mysource_symbols.csv\` to rename symbols as needed.\n` +
     `  # The \`filename_line\` in the CSV indicates where each symbol is defined.\n` +
-    `  # The \`display_name\` is the original symbol name.\n` +
+    `  # The \`kind_display_name\` is the original symbol kind and name.\n` +
     `  # The \`new_display_name\` is where you can specify the new name for the symbol.\n` +
     `\n` +
     `  # Finally, bundle the source file using the edited Symbols CSV file.\n` +

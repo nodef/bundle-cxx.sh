@@ -3,6 +3,18 @@
 #pragma comment(lib, "libclang.lib")
 
 
+// Get string representation of cursor kind, with special handling for preprocessing kinds.
+const char *cursorKindString(CXCursorKind kind, CXString &kindName) {
+  switch (kind) {
+    default: return clang_getCString(kindName);
+    case CXCursor_PreprocessingDirective: return "PreprocessingDirective";
+    case CXCursor_MacroDefinition:        return "MacroDefinition";
+    case CXCursor_MacroExpansion:         return "MacroExpansion";
+    case CXCursor_InclusionDirective:     return "InclusionDirective";
+  }
+}
+
+
 // This will list all symbols in the given input C/C++ source file.
 int listSymbols(const char *inputFile, char *const *argv=nullptr, int argc=0) {
   // Create index, and parse the input file.
@@ -10,26 +22,30 @@ int listSymbols(const char *inputFile, char *const *argv=nullptr, int argc=0) {
   CXTranslationUnit unit  = clang_parseTranslationUnit(
     index, inputFile,
     argv, argc, nullptr, 0,
-    CXTranslationUnit_None);
+    CXTranslationUnit_DetailedPreprocessingRecord);
   if (unit == nullptr) {
     fprintf(stderr, "Unable to parse translation unit. Quitting.\n");
     return 1;
   }
   // Lets first setup the column names of our output CSV.
-  printf("filename_line,display_name,new_display_name\n");
+  printf("filename_line,kind_display_name,new_display_name\n");
   // Obtain a cursor at the root of the translation unit
   CXCursor   root = clang_getTranslationUnitCursor(unit);
   auto onVisit    = [](CXCursor curr, CXCursor par, CXClientData data) {
     // We want to only track top-level declarations in user files.
     CXSourceLocation locn = clang_getCursorLocation(curr);
     if (clang_Location_isInSystemHeader(locn)) return CXChildVisit_Continue;
+    CXCursorKind kind = clang_getCursorKind(curr);
+    if (kind == CXCursor_MacroExpansion) return CXChildVisit_Continue;
     // We track both location and name of the cursor.
     CXFile file; unsigned line, column, offset;
     clang_getExpansionLocation(locn, &file, &line, &column, &offset);
     CXString fileName = clang_getFileName(file);
+    CXString kindName = clang_getCursorKindSpelling(kind);
     CXString name = clang_getCursorDisplayName(curr);
-    printf("\"%s:%d\",\"%s\",\n", clang_getCString(fileName), line, clang_getCString(name));
+    printf("\"%s:%d\",\"%s:%s\",\n", clang_getCString(fileName), line, cursorKindString(kind, kindName), clang_getCString(name));
     clang_disposeString(fileName);
+    clang_disposeString(kindName);
     clang_disposeString(name);
     return CXChildVisit_Continue; // CXChildVisit_Recurse;
   };
